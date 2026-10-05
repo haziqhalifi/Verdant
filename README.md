@@ -1,6 +1,6 @@
 # Verdant — Tower K Energy & Comfort Pill
 
-> **Governed comfort decisions for Tower K — humans approve, code computes, AI only selects.**
+> **Governed comfort decisions for Tower K — humans approve, code computes, AI only drafts and selects.**
 
 ![Verdant cover](docs/evidence/cover.png)
 

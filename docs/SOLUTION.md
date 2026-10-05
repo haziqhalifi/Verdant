@@ -93,7 +93,7 @@ flowchart TB
 ## 1 · The business problem
 
 Tower K's chiller retrofit reads as an aggregate success, but nobody can say which lever worked,
-and the chief engineer who knows is retiring. The building has dashboards but not his judgement.
+and the chief engineer who knows is retiring. The building has dashboards but not the engineer's judgement.
 The hero case makes the cost concrete: plant efficiency drifted **0.6230 → 0.7130 kW/RT**, wasting
 **1,836 kWh/day ≈ S$514/day**, and the intuitive fix (drop the building-wide chilled-water setpoint)
 would *add* **S$642.60** while over-cooling every floor.
