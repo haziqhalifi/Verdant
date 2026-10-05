@@ -41,6 +41,7 @@ export const AUDIT_ACTIONS = {
   CASE_CARD_ASSEMBLED: "case.card_assembled",
   CASE_ACTION_ROUTED: "case.action_routed",
   CASE_OUTCOME_RECORDED: "case.outcome_recorded",
+  PILL_CLAIMS_SUGGESTED: "pill.claims_suggested",
   PILL_CAPTURED: "pill.captured",
   PILL_REVISED: "pill.revised",
   PILL_SUBMITTED: "pill.submitted",

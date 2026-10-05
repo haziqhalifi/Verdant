@@ -28,7 +28,11 @@ run() { # run <label> <workdir> <command...>
 
 # --- 1. docker compose parses (daemon not required) -------------------------
 step "docker compose config"
-run "compose config valid" "$ROOT" docker compose config -q
+if command -v docker >/dev/null 2>&1; then
+  run "compose config valid" "$ROOT" docker compose config -q
+else
+  skip "docker not installed — skipping compose config (CI runs it)"
+fi
 
 # --- 2. live Postgres smoke test (self-skips when Docker is unavailable) ----
 step "db smoke (schema + seed)"

@@ -3,8 +3,9 @@
 > **Submission requirement.** The organiser handbook requires **at least 3 screenshots, or a
 > recording, of the CodeBuddy / WorkBuddy build chats**, kept in the repository.
 >
-> This file is the index for that evidence. Replace the placeholders below with real captures before
-> submitting — **do not fabricate them.**
+> This file is the index for that evidence. The captures live in [`docs/evidence/`](./evidence/)
+> and are referenced by name below. **Do not fabricate them** — re-run the session and capture the
+> real frames.
 
 ## How to capture
 
@@ -12,26 +13,27 @@
 2. Capture the moments that show *engineering judgement*, not just code appearing. The most
    compelling frames are the ones where the tool disagreed with the first approach, where a test
    caught a real bug, or where a blocker was reported honestly rather than worked around.
-3. Save screenshots under `docs/evidence/` (create the folder) and reference them here.
+3. Save screenshots under `docs/evidence/` and reference them here — see
+   [`docs/evidence/README.md`](./evidence/README.md) for the file-name conventions.
 4. Prefer full-window captures that show the prompt, the tool's reasoning, and the diff.
 
 ## Suggested captures (all of these actually happened in this build)
 
 | # | Moment | Why it is worth showing |
 |---|---|---|
-| 1 | The stack pivot: the FastAPI + Next.js scaffold was **committed** (`93d1558`) before being replaced, rather than overwritten | Destructive change handled by preserving, not discarding, prior work |
-| 2 | Docker Desktop failing with *"There is not enough space on the disk"*, root-caused to ~4.5 GB free on `C:` | An environment blocker reported honestly instead of hidden |
-| 3 | `tsc` error: *"This comparison appears to be unintentional because the types … have no overlap"* after the second `state.route === "blocked"` check | TypeScript's property narrowing persisted across a function call; the fix funnels the read through `isBlocked(state)` |
-| 4 | The retrieval eval reporting **0.5833** instead of 1.0, root-caused to two declared seed slugs disagreeing with `slugify(title)` | The eval harness caught a real bug that no unit test would have |
-| 5 | The fix: a seed-time assertion that each declared slug matches `slugify(title)` | Turning a one-off bug into a permanent guard |
-| 6 | The live API returning the hero card: `route: execute_with_approval`, setpoint option `selected: false`, `policyNote` naming the rejection | The product claim, demonstrated end to end |
+| 1 | The stack pivot: the FastAPI + Next.js scaffold was **committed** (`93d1558`) before being replaced, rather than overwritten | Destructive change handled by preserving, not discarding, prior work | `docs/evidence/01-stack-pivot.png` |
+| 2 | Docker Desktop failing with *"There is not enough space on the disk"*, root-caused to ~4.5 GB free on `C:` | An environment blocker reported honestly instead of hidden | `docs/evidence/02-disk-blocker.png` |
+| 3 | `tsc` error: *"This comparison appears to be unintentional because the types … have no overlap"* after the second `state.route === "blocked"` check | TypeScript's property narrowing persisted across a function call; the fix funnels the read through `isBlocked(state)` | `docs/evidence/03-tsc-narrowing.png` |
+| 4 | The retrieval eval reporting **0.5833** instead of 1.0, root-caused to two declared seed slugs disagreeing with `slugify(title)` | The eval harness caught a real bug that no unit test would have | `docs/evidence/04-eval-caught-bug.png` |
+| 5 | The fix: a seed-time assertion that each declared slug matches `slugify(title)` | Turning a one-off bug into a permanent guard | *(covered by 04)* |
+| 6 | The live API returning the hero card: `route: execute_with_approval`, setpoint option `selected: false`, `policyNote` naming the rejection | The product claim, demonstrated end to end | `docs/evidence/05-hero-card.png` |
 
 ## Evidence log
 
 | Date | Tool | What was done | Artefact |
 |---|---|---|---|
 | 2026-10-02 | CodeBuddy | Scaffolded the FastAPI + Next.js stack (100 files, 16,261 insertions); committed as `93d1558` | `git show 93d1558 --stat` |
-| 2026-10-02 | CodeBuddy | Docker/disk blocker: Postgres smoke test deferred; reported, not worked around | *(screenshot pending)* |
+| 2026-10-02 | CodeBuddy | Docker/disk blocker: Postgres smoke test deferred; reported, not worked around | `docs/evidence/02-disk-blocker.png` |
 | 2026-10-02 | CodeBuddy | Pivoted to Express + TypeScript + in-memory store; built 49 files / ~4,900 lines with 74 tests | `git log`, `backend/src/**` |
 | 2026-10-02 | CodeBuddy | Fixed the slug/title mismatch found by the retrieval eval; added a seed-time guard | `backend/src/modules/synthetic/seed.controller.ts` |
 | 2026-10-02 | CodeBuddy | Verified end to end: hero card, gate escalation, transfer block, 403 on audit, eval 1.0 | `docs/HERO_CASE.md` |

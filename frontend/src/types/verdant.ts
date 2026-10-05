@@ -265,6 +265,14 @@ export interface ClaimInput {
   confidence?: number;
 }
 
+/** POST /api/pills/suggest-claims — suggestions only; nothing is saved. */
+export interface ClaimSuggestions {
+  suggestions: { kind: ClaimKind; text: string; sourceQuote: string | null }[];
+  rejected: number;
+  modelAssisted: boolean;
+  source: string;
+}
+
 export interface PillOptionInput {
   label: string;
   detail: string;

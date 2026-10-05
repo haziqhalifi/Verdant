@@ -15,6 +15,7 @@ import type {
   AuditVerification,
   CapturePayload,
   Case,
+  ClaimSuggestions,
   CaseCreatePayload,
   CaseDetail,
   ChillerReading,
@@ -154,6 +155,11 @@ export const api = {
     ),
   pill: (pillId: string) => request<PillDetail>(`/api/pills/${encodeURIComponent(pillId)}`),
   evalReport: () => request<EvalReport>("/api/pills/eval"),
+  suggestClaims: (transcript: CapturePayload["transcript"]) =>
+    request<ClaimSuggestions>("/api/pills/suggest-claims", {
+      method: "POST",
+      body: JSON.stringify({ transcript }),
+    }),
   capturePill: (payload: CapturePayload) =>
     request<PillDetail>("/api/pills", { method: "POST", body: JSON.stringify(payload) }),
   revisePill: (pillId: string, payload: CapturePayload) =>

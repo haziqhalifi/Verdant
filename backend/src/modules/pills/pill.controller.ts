@@ -8,6 +8,7 @@ import { assertCan } from "@/modules/governance/roles";
 import { resolveActor } from "@/middleware/actor";
 import { parseOrThrow } from "@/middleware/validation";
 import { readQueryString } from "@/shared/http";
+import { suggestClaims } from "./claim-drafting.service";
 import { runEvalSuite } from "./eval.service";
 import {
   approvePill,
@@ -73,6 +74,8 @@ const captureSchema = z.object({
     .max(200),
 });
 
+const suggestSchema = captureSchema.pick({ transcript: true });
+
 const reviewSchema = z.object({
   note: z.string().max(2000).optional(),
 });
@@ -122,6 +125,20 @@ pillController.get("/eval", (_req, res) => {
 pillController.get("/:pillId", (req, res) => {
   resolveActor(req);
   res.json(getPill(req.params.pillId));
+});
+
+/**
+ * POST /api/pills/suggest-claims — AI-assisted capture. Returns suggested claims, each re-checked
+ * against the transcript (FR-02). Persists nothing; the chief engineer edits and submits.
+ */
+pillController.post("/suggest-claims", async (req, res, next) => {
+  try {
+    const actor = resolveActor(req);
+    const { transcript } = parseOrThrow(suggestSchema, req.body);
+    res.json(await suggestClaims(transcript, actor));
+  } catch (error) {
+    next(error);
+  }
 });
 
 /** POST /api/pills — capture a pill from an interview. Chief engineers only. */

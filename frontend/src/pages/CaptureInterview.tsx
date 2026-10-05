@@ -1,4 +1,4 @@
-import { FilePlus2, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
+import { FilePlus2, Plus, RotateCcw, Save, Sparkles, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Empty, ErrorPanel, InfoNote, PageHeader, Section, StatusBadge } from "@/components/shared";
@@ -13,6 +13,7 @@ import type {
   AssetType,
   CapturePayload,
   ClaimKind,
+  ClaimSuggestions,
   PillDetail,
   PillSummary,
 } from "@/types/verdant";
@@ -130,6 +131,10 @@ const EXAMPLE: DraftForm = {
     {
       speaker: "Operator",
       text: "Condenser approach was 3.2 C higher than commissioning, which points at tube fouling.",
+    },
+    {
+      speaker: "Chief Engineer",
+      text: "I'm not sure whether the fouling is on the water side or the refrigerant side.",
     },
   ],
 };
@@ -280,6 +285,9 @@ export default function CaptureInterview() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Failure | null>(null);
+  const [suggested, setSuggested] = useState<Omit<ClaimSuggestions, "suggestions"> & {
+    count: number;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -315,6 +323,33 @@ export default function CaptureInterview() {
     } catch (cause) {
       setError({
         message: cause instanceof Error ? cause.message : "Could not load the pill.",
+        details: cause instanceof ApiError ? cause.details : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Replace the claims with AI suggestions. Nothing is saved until the engineer submits. */
+  async function suggestFromTranscript() {
+    setBusy(true);
+    setError(null);
+    try {
+      const { suggestions, ...meta } = await api.suggestClaims(payload.transcript);
+      if (suggestions.length > 0) {
+        patch({
+          claims: suggestions.map((claim) => ({
+            kind: claim.kind,
+            text: claim.text,
+            sourceQuote: claim.sourceQuote ?? "",
+            confidence: "",
+          })),
+        });
+      }
+      setSuggested({ ...meta, count: suggestions.length });
+    } catch (cause) {
+      setError({
+        message: cause instanceof Error ? cause.message : "Could not suggest claims.",
         details: cause instanceof ApiError ? cause.details : undefined,
       });
     } finally {
@@ -526,24 +561,48 @@ export default function CaptureInterview() {
             title="Claims and provenance (FR-02)"
             description="Every non-unknown claim must cite a quote from the transcript below."
             actions={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  patch({
-                    claims: [
-                      ...form.claims,
-                      { kind: "measured", text: "", sourceQuote: "", confidence: "" },
-                    ],
-                  })
-                }
-              >
-                <Plus className="h-3.5 w-3.5" aria-hidden />
-                Add claim
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void suggestFromTranscript()}
+                  disabled={busy || !allowed || payload.transcript.length === 0}
+                  title="Draft claims from the transcript. Each quote is re-checked verbatim; nothing is saved."
+                >
+                  <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                  Suggest from transcript
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    patch({
+                      claims: [
+                        ...form.claims,
+                        { kind: "measured", text: "", sourceQuote: "", confidence: "" },
+                      ],
+                    })
+                  }
+                >
+                  <Plus className="h-3.5 w-3.5" aria-hidden />
+                  Add claim
+                </Button>
+              </>
             }
           >
             <div className="space-y-3">
+              {suggested !== null && (
+                <InfoNote>
+                  {suggested.count === 0
+                    ? "No provable claims were found in the transcript; add them by hand."
+                    : `${suggested.count} claim(s) suggested — ${
+                        suggested.modelAssisted ? "AI-drafted" : "deterministic extractor (AI off)"
+                      }. Every quote was checked verbatim against the transcript.`}
+                  {suggested.rejected > 0 &&
+                    ` ${suggested.rejected} AI suggestion(s) were dropped because their quote is not in the transcript.`}{" "}
+                  Review and edit each claim before submitting — nothing has been saved.
+                </InfoNote>
+              )}
               {form.claims.map((claim, index) => {
                 const quote = claim.sourceQuote.trim();
                 const cited =

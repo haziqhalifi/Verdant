@@ -1,5 +1,9 @@
 # Verdant — Tower K Energy & Comfort Pill
 
+> **Governed comfort decisions for Tower K — humans approve, code computes, AI only selects.**
+
+![Verdant cover](docs/evidence/cover.png)
+
 > When Tower K's chief engineer retires, his judgement on cooling and comfort stays —
 > approved, versioned and measurable.
 
@@ -114,12 +118,18 @@ The single most important design rule: **numbers and safety never touch the LLM.
 | Audit hash chain (FR-11) | `backend/src/modules/audit/audit.service.ts` | **No** |
 | Pill retrieval | `backend/src/modules/pills/retrieval.service.ts` | **No** — weighted token overlap |
 | Pill **selection** (FR-05) | `backend/src/modules/pills/model.ts` | **Yes** — returns one candidate ID |
+| Claim **drafting** (capture) | `backend/src/modules/pills/model.ts` → `claim-drafting.service.ts` | **Yes** — suggests claims; every quote re-checked verbatim |
 
-`backend/src/modules/pills/model.ts` is the **only** module that talks to a model provider. Its
-contract is deliberately tiny: given a case and a ranked candidate list, return the ID of exactly
-one candidate. It cannot compute a number, write guidance, or introduce an ID that retrieval did
-not supply — a hallucinated, malformed, or timed-out response falls back to the top-scoring
-candidate.
+`backend/src/modules/pills/model.ts` is the **only** module that talks to a model provider. It has
+two deliberately tiny contracts:
+
+- **`choosePill`** — given a case and a ranked candidate list, return the ID of exactly one
+  candidate. It cannot compute a number, write guidance, or introduce an ID that retrieval did not
+  supply — a hallucinated, malformed, or timed-out response falls back to the top-scoring candidate.
+- **`draftClaims`** — given a capture transcript, *suggest* claims for the chief engineer to edit.
+  Each suggestion is re-run through the same FR-02 check as the capture endpoint; a suggestion whose
+  quote is not verbatim in the transcript is dropped, counted, and audited
+  (`pill.claims_suggested`). Nothing is saved until a human submits the form.
 
 With `LLM_ENABLED=false` (the demo and CI default) that module never performs I/O, so the hero case
 runs end-to-end **with no API key**.
@@ -129,7 +139,8 @@ runs end-to-end **with no API key**.
 - **One file may perform I/O to a model.** Everything else is pure or DB-only, which is why the
   test suite can assert exact numbers.
 - **The model is given a closed set.** `choosePill` receives candidate IDs and returns one of them;
-  the response is validated against the set before use.
+  the response is validated against the set before use. `draftClaims` may only cite the transcript
+  it was given, and the code — not the model — decides whether a quote is genuine.
 - **The pipeline is a set of functions, not a graph runtime.** Node names follow `verb_noun` and the
   trace is recorded explicitly, so `MAX_HOPS = 10` is a real ceiling rather than a framework hint.
 
@@ -145,7 +156,7 @@ denied by the server — the UI hides what it cannot do, but never relies on tha
 |---|---|---|
 | `/` | **Case console** | Run a complaint through the pipeline. Shows the plant metrics strip, the gate verdict, the FR-09 context table, the selected pill (with score and `model-assisted` vs `deterministic`), the four-metric grid, the priced-options table with the `selected` marker, the policy note, the hop trace, and the audit-verified badge. Recent cases can be reopened, which re-derives the card **without** writing to the audit log. |
 | `/pills` | **Pill library** | Filter by status and domain. Detail shows triggers, steps, context requirements, claims **with their cited transcript quotes**, priced options, the capture transcript, and full version history. Lifecycle actions appear per role: submit for review (author/owner), approve or reject (reviewer, with a mandatory rejection reason), roll back (reviewer). A retrieval eval button renders precision/recall over the historical ticket set. |
-| `/capture` | **Capture interview** | Turn an engineer's account into a versioned pill. Claims carry a kind, text, and a verbatim source quote; the form validates FR-02 in the browser *and* shows per-claim "quote found / quote not found" badges, so an unprovable claim cannot be submitted. A revise mode loads an existing pill into the form and creates version n+1 as a draft. |
+| `/capture` | **Capture interview** | Turn an engineer's account into a versioned pill. Claims carry a kind, text, and a verbatim source quote; the form validates FR-02 in the browser *and* shows per-claim "quote found / quote not found" badges, so an unprovable claim cannot be submitted. **Suggest from transcript** drafts the claims for the engineer to edit — AI-drafted when a model is configured, a deterministic extractor otherwise — and only suggestions whose quote is verbatim in the transcript survive. A revise mode loads an existing pill into the form and creates version n+1 as a draft. |
 | `/transfer` | **Transfer check** | Pick an approved pill and a destination site. A pre-run table shows what will be compared and flags which fields will block; running it produces the real FR-09 verdict. A blocked transfer prices nothing (`metrics: null`). |
 | `/audit` | **Audit log** | Chain-verification banner, filters by entity type / action / entity id / limit, and rows that expand to show the payload alongside the `prevHash → hash` link. Read access is restricted to governance and review roles. |
 
@@ -309,6 +320,7 @@ switcher and its `can(...)` checks.
 | `GET /api/sites` · `/assets` · `/tenants` | reference data |
 | `GET /api/pills` · `/pills/:id` | library list · detail with claims and provenance |
 | `GET /api/pills/eval` | retrieval precision/recall over the historical ticket set |
+| `POST /api/pills/suggest-claims` | AI-assisted capture: suggested claims, each quote checked verbatim; saves nothing (chief engineer) |
 | `POST /api/pills` | capture a pill from an interview (chief engineer) |
 | `POST /api/pills/:pillId/revise` | create version n+1 as a draft (owner) |
 | `POST /api/pills/:pillVersionId/submit` \| `/approve` \| `/reject` | review lifecycle |
@@ -329,7 +341,7 @@ Errors always leave in one shape, which is also what the console's error panel r
 
 ## Testing
 
-94 tests across 9 files, all deterministic and offline (`LLM_ENABLED=false`):
+103 tests across 10 files, all deterministic and offline (`LLM_ENABLED=false`):
 
 | File | Tests | Covers |
 |---|---|---|
@@ -337,6 +349,7 @@ Errors always leave in one shape, which is also what the console's error panel r
 | `analytics.test.ts` | 9 | FR-04 metrics, CDD weather normalisation, lever pricing |
 | `audit.test.ts` | 9 | FR-11 chain construction, tamper detection, sequence contiguity |
 | `pills.test.ts` | 20 | FR-02 provenance, FR-03 separation of duties, versioning, approval, rollback |
+| `claim-drafting.test.ts` | 9 | AI-assisted capture: verbatim quotes only, hallucinated quote dropped, model-failure fallback, access control |
 | `cases.test.ts` | 10 | End-to-end pipeline, gate halt, FR-09 transfer block |
 | `determinism.test.ts` | 4 | Seeded world reproducibility; `Math.random` is never called |
 | `api.test.ts` | 14 | HTTP surface, the error envelope, access control |
@@ -365,7 +378,7 @@ trigger — it self-skips when Docker is unavailable.
 Observed on the current tree:
 
 ```
-backend   tsc ✔   eslint ✔   vitest ✔   94/94 tests passed (9 files)
+backend   tsc ✔   eslint ✔   vitest ✔   103/103 tests passed (10 files)
 frontend  tsc ✔   eslint ✔   vite build ✔   373 kB → 111 kB gzip
 db smoke  ✔ (skipped locally — no Docker; executed by CI)
 compose   config valid
@@ -405,7 +418,7 @@ End-to-end checks against the running API:
 ## Repository layout
 
 ```
-backend/    Express + TypeScript API: deterministic services, 8-node pipeline, 94 tests
+backend/    Express + TypeScript API: deterministic services, 8-node pipeline, 103 tests
   src/
     modules/    analytics, assets, audit, cases, governance, pills, synthetic
     shared/     store, hash chain, RNG, errors, HTTP helpers
@@ -457,8 +470,8 @@ scripts/    verify.sh — the single quality gate
   directly by `pills.test.ts`.
 - **Outcomes are recorded but not fed back.** `POST /api/cases/:caseId/outcome` stores what happened;
   turning that into a proposed revision is manual.
-- **The model boundary is implemented but unexercised in CI.** `LLM_ENABLED=false` means the
-  fallback path is what the test suite covers.
+- **No live model in CI.** `LLM_ENABLED=false` in CI; the model path of `draftClaims` is covered with
+  a stubbed provider (including a hallucinated quote being dropped), but no real provider is called.
 
 ---
 

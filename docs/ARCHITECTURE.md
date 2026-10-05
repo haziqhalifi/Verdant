@@ -31,11 +31,13 @@ that **numbers and safety never touch the language model**.
 | Audit chain (FR-11) | `modules/audit/audit.service.ts` | **No** |
 | Retrieval | `modules/pills/retrieval.service.ts` | **No** — weighted token overlap |
 | Pill selection (FR-05) | `modules/pills/model.ts` | **Yes** — returns one candidate ID |
+| Claim drafting (capture) | `modules/pills/model.ts` → `claim-drafting.service.ts` | **Yes** — suggestions only; quotes re-checked by FR-02 |
 
 Three properties keep this honest:
 
 1. **The model boundary is one file.** `modules/pills/model.ts` is the only module that performs
-   network I/O to a provider. Nothing else imports it except `modules/pills/orchestrator.ts`.
+   network I/O to a provider. Nothing else imports it except `modules/pills/orchestrator.ts` and
+   `modules/pills/claim-drafting.service.ts`.
 2. **The model cannot introduce an ID.** `choosePill` builds an `allowed` set from the retrieved
    candidates; a response whose `pill_version_id` is not in that set falls back to the top-scoring
    candidate. A malformed response, a timeout, or a non-2xx status all fall back the same way.
