@@ -1,4 +1,4 @@
-import { Activity, ArrowLeftRight, BookOpen, ClipboardList, ShieldCheck } from "lucide-react";
+import { Activity, ArrowLeftRight, BookOpen, ClipboardList, Menu, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 
@@ -21,6 +21,7 @@ const NAV = [
 export default function Layout() {
   const { role, roles, setRole, permissions, loading } = useRole();
   const [status, setStatus] = useState<SeedStatus | null>(null);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,6 +44,13 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:border focus:bg-card focus:px-4 focus:py-2 focus:text-sm focus:font-medium"
+      >
+        Skip to main content
+      </a>
+
       <aside className="hidden w-64 shrink-0 flex-col border-r bg-card lg:flex">
         <div className="border-b px-5 py-5">
           <div className="text-sm font-semibold tracking-tight">VERDANT</div>
@@ -99,7 +107,18 @@ export default function Layout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 border-b bg-card/95 backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-            <div className="text-sm font-semibold lg:hidden">VERDANT</div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="rounded-md border p-1.5 lg:hidden"
+                aria-label="Toggle navigation"
+                aria-expanded={navOpen}
+                onClick={() => setNavOpen((open) => !open)}
+              >
+                <Menu className="h-4 w-4" aria-hidden />
+              </button>
+              <div className="text-sm font-semibold lg:hidden">VERDANT</div>
+            </div>
 
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
@@ -135,7 +154,31 @@ export default function Layout() {
           )}
         </header>
 
-        <main className="min-w-0 flex-1 p-5 lg:p-8">
+        {navOpen && (
+          <nav className="border-b bg-card lg:hidden" aria-label="Mobile navigation">
+            {NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={() => setNavOpen(false)}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-2 px-5 py-2.5 text-sm transition-colors",
+                    isActive
+                      ? "bg-accent font-medium text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4" aria-hidden />
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        )}
+
+        <main id="main-content" className="min-w-0 flex-1 p-5 lg:p-8">
           <Outlet />
         </main>
 

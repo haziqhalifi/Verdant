@@ -27,8 +27,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRole } from "@/hooks/use-role";
-import { ApiError, api } from "@/lib/verdant-api";
-import { dateTimeOf, humanise, num, sgd } from "@/lib/utils";
+import { api } from "@/lib/verdant-api";
+import { dateTimeOf, failureOf, humanise, num, sgd } from "@/lib/utils";
+import type { Failure } from "@/lib/utils";
 import type { Case, CaseCreatePayload, DecisionCard, MetricsResponse, Site } from "@/types/verdant";
 
 /** The complaint the PRD is built around. */
@@ -60,9 +61,7 @@ export default function CaseConsole() {
 
   const [running, setRunning] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<{ message: string; details?: Record<string, unknown> } | null>(
-    null,
-  );
+  const [error, setError] = useState<Failure | null>(null);
 
   const loadRecent = useCallback(async () => {
     try {
@@ -84,10 +83,7 @@ export default function CaseConsole() {
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
-          setError({
-            message: cause instanceof Error ? cause.message : "Could not reach the API.",
-            details: cause instanceof ApiError ? cause.details : undefined,
-          });
+          setError(failureOf(cause, "Could not reach the API."));
         }
       })
       .finally(() => {
@@ -109,10 +105,7 @@ export default function CaseConsole() {
       setCard(result);
       await loadRecent();
     } catch (cause) {
-      setError({
-        message: cause instanceof Error ? cause.message : "The case could not be run.",
-        details: cause instanceof ApiError ? cause.details : undefined,
-      });
+      setError(failureOf(cause, "The case could not be run."));
     } finally {
       setRunning(false);
     }
@@ -124,10 +117,7 @@ export default function CaseConsole() {
     try {
       setCard(await api.caseCard(caseId));
     } catch (cause) {
-      setError({
-        message: cause instanceof Error ? cause.message : "The card could not be loaded.",
-        details: cause instanceof ApiError ? cause.details : undefined,
-      });
+      setError(failureOf(cause, "The card could not be loaded."));
     } finally {
       setRunning(false);
     }

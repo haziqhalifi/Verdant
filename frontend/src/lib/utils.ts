@@ -1,8 +1,21 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { ApiError } from "@/lib/verdant-api";
+
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
+}
+
+/** A typed error for display in ErrorPanel. */
+export type Failure = { message: string; details?: Record<string, unknown> };
+
+/** Extract a Failure from a caught unknown, using the fallback if not an Error. */
+export function failureOf(cause: unknown, fallback: string): Failure {
+  return {
+    message: cause instanceof Error ? cause.message : fallback,
+    details: cause instanceof ApiError ? cause.details : undefined,
+  };
 }
 
 /** SGD with a sign, so a saving reads as a saving. */

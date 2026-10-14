@@ -3,19 +3,17 @@
  * rejected, and a permission that is not explicitly granted is denied.
  *
  * Authors never approve their own pills (FR-03) — see `pill.service.ts`.
+ *
+ * The `Role` union and `RoleInfo` interface are shared wire types from `@verdant/shared`.
+ * Permission enforcement (`assertCan`, `can`, `PERMISSIONS`) is backend-only.
  */
 
 import { ForbiddenError } from "@/shared/errors";
+import { ROLES } from "@verdant/shared";
+import type { Role } from "@verdant/shared";
 
-export const ROLES = [
-  "aom",
-  "chief_engineer",
-  "pill_reviewer",
-  "site_operator",
-  "governance_admin",
-] as const;
-
-export type Role = (typeof ROLES)[number];
+export { ROLES } from "@verdant/shared";
+export type { Role, RoleInfo } from "@verdant/shared";
 
 export const ROLE_LABELS: Record<Role, string> = {
   aom: "Asset Operations Manager",

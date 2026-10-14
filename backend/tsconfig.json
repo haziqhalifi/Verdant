@@ -19,8 +19,10 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@verdant/shared": ["../shared/src/index.ts"],
+      "@verdant/shared/*": ["../shared/src/*"]
     }
   },
-  "include": ["src/**/*.ts", "vitest.config.ts", "eslint.config.js"]
+  "include": ["src/**/*.ts", "vitest.config.ts", "eslint.config.js", "../shared/src/**/*.ts"]
 }

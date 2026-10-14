@@ -16,7 +16,7 @@ import {
 } from "@/components/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label, Select, Textarea } from "@/components/ui/field";
+import { Input, Label, Select, Textarea } from "@/components/ui/field";
 import {
   Table,
   TableBody,
@@ -26,19 +26,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRole } from "@/hooks/use-role";
-import { ApiError, api } from "@/lib/verdant-api";
-import { dateTimeOf, humanise, num, pct } from "@/lib/utils";
+import { api } from "@/lib/verdant-api";
+import { dateTimeOf, failureOf, humanise, num, pct } from "@/lib/utils";
+import type { Failure } from "@/lib/utils";
 import type { EvalReport, PillDetail, PillStatus, PillSummary } from "@/types/verdant";
 import { PILL_STATUSES } from "@/types/verdant";
-
-type Failure = { message: string; details?: Record<string, unknown> };
-
-function failureOf(cause: unknown, fallback: string): Failure {
-  return {
-    message: cause instanceof Error ? cause.message : fallback,
-    details: cause instanceof ApiError ? cause.details : undefined,
-  };
-}
 
 export default function PillLibrary() {
   const { can } = useRole();
@@ -46,12 +38,14 @@ export default function PillLibrary() {
   const [summaries, setSummaries] = useState<PillSummary[]>([]);
   const [statusFilter, setStatusFilter] = useState<PillStatus | "">("");
   const [domainFilter, setDomainFilter] = useState("");
+  const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<PillDetail | null>(null);
   const [evalReport, setEvalReport] = useState<EvalReport | null>(null);
   const [reviewNote, setReviewNote] = useState("");
 
   const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Failure | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -91,10 +85,13 @@ export default function PillLibrary() {
   useEffect(() => {
     if (selectedId === null) {
       setDetail(null);
+      setDetailLoading(false);
       return;
     }
 
     let cancelled = false;
+    setError(null);
+    setDetailLoading(true);
     api
       .pill(selectedId)
       .then((value) => {
@@ -102,6 +99,9 @@ export default function PillLibrary() {
       })
       .catch((cause: unknown) => {
         if (!cancelled) setError(failureOf(cause, "Could not load the pill."));
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
       });
 
     return () => {
@@ -116,12 +116,23 @@ export default function PillLibrary() {
 
   const visible = useMemo(
     () =>
-      summaries.filter(
-        (summary) =>
-          (statusFilter === "" || summary.version?.status === statusFilter) &&
-          (domainFilter === "" || summary.pill.domain === domainFilter),
-      ),
-    [summaries, statusFilter, domainFilter],
+      summaries.filter((summary) => {
+        if (statusFilter !== "" && summary.version?.status !== statusFilter) return false;
+        if (domainFilter !== "" && summary.pill.domain !== domainFilter) return false;
+        if (search.trim() !== "") {
+          const query = search.trim().toLowerCase();
+          const haystack = [
+            summary.pill.title,
+            summary.pill.slug,
+            ...(summary.version?.triggers ?? []),
+          ]
+            .join(" ")
+            .toLowerCase();
+          if (!haystack.includes(query)) return false;
+        }
+        return true;
+      }),
+    [summaries, statusFilter, domainFilter, search],
   );
 
   /** Re-read the list and the open pill after a lifecycle transition. */
@@ -193,7 +204,11 @@ export default function PillLibrary() {
       )}
 
       {status !== null && (
-        <div className="mb-6 rounded-md border border-success/40 bg-success/5 px-4 py-2 text-sm text-success">
+        <div
+          className="mb-6 rounded-md border border-success/40 bg-success/5 px-4 py-2 text-sm text-success"
+          role="status"
+          aria-live="polite"
+        >
           {status}
         </div>
       )}
@@ -259,6 +274,13 @@ export default function PillLibrary() {
             description={`${visible.length} of ${summaries.length} pill(s)`}
             actions={
               <>
+                <Input
+                  aria-label="Search pills"
+                  placeholder="Search title, slug, triggers…"
+                  className="h-8 w-48 text-xs"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
                 <Select
                   aria-label="Status filter"
                   className="h-8 w-36 text-xs"
@@ -349,7 +371,11 @@ export default function PillLibrary() {
 
           <div className="space-y-6">
             {detail === null || version === null ? (
-              <Empty message="Select a pill to see its detail." />
+              detailLoading ? (
+                <Loading label="Loading pill detail…" />
+              ) : (
+                <Empty message="Select a pill to see its detail." />
+              )
             ) : (
               <>
                 <Section

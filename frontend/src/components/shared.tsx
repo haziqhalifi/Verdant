@@ -103,7 +103,11 @@ export function Stat({
 
 export function Loading({ label = "Loading…" }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground">
+    <div
+      className="flex items-center gap-2 py-10 text-sm text-muted-foreground"
+      role="status"
+      aria-live="polite"
+    >
       <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
       {label}
     </div>
@@ -118,7 +122,11 @@ export function ErrorPanel({
   details?: Record<string, unknown>;
 }) {
   return (
-    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4">
+    <div
+      className="rounded-md border border-destructive/40 bg-destructive/5 p-4"
+      role="alert"
+      aria-live="assertive"
+    >
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
         <div className="min-w-0">

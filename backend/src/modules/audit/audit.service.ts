@@ -80,6 +80,21 @@ export function verifyAudit(): AuditVerification {
   return { valid: true, entries: entries.length, brokenAtSeq: null };
 }
 
+/**
+ * Lightweight check that the last entry's hash is correct. Use this after an
+ * append when the chain was already valid before — only the new link needs
+ * checking, not the entire chain. Returns `true` if the last entry's hash
+ * matches `sha256(prevHash + canonicalJson(...))`.
+ */
+export function verifyLastLink(): boolean {
+  const entries = db().auditLogs;
+  if (entries.length === 0) return true;
+
+  const last = entries[entries.length - 1]!;
+  const expected = chainHash(last.prevHash, last);
+  return last.hash === expected && last.seq === entries.length;
+}
+
 /** Display form for the audit table. */
 export function presentAuditEntry(entry: AuditLogEntry): AuditLogEntry & { shortHash: string; shortPrevHash: string } {
   return { ...entry, shortHash: shortHash(entry.hash), shortPrevHash: shortHash(entry.prevHash) };

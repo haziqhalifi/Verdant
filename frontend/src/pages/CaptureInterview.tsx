@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/field";
 import { useRole } from "@/hooks/use-role";
-import { ApiError, api } from "@/lib/verdant-api";
-import { humanise } from "@/lib/utils";
+import { api } from "@/lib/verdant-api";
+import { failureOf, humanise } from "@/lib/utils";
+import type { Failure } from "@/lib/utils";
 import type {
   ActionTier,
   AssetType,
@@ -18,8 +19,6 @@ import type {
   PillSummary,
 } from "@/types/verdant";
 import { ACTION_TIERS, ASSET_TYPES, CLAIM_KINDS } from "@/types/verdant";
-
-type Failure = { message: string; details?: Record<string, unknown> };
 
 interface ClaimRow {
   kind: ClaimKind;
@@ -321,10 +320,7 @@ export default function CaptureInterview() {
       setForm(formFromDetail(detail));
       setCreated(null);
     } catch (cause) {
-      setError({
-        message: cause instanceof Error ? cause.message : "Could not load the pill.",
-        details: cause instanceof ApiError ? cause.details : undefined,
-      });
+      setError(failureOf(cause, "Could not load the pill."));
     } finally {
       setBusy(false);
     }
@@ -348,10 +344,7 @@ export default function CaptureInterview() {
       }
       setSuggested({ ...meta, count: suggestions.length });
     } catch (cause) {
-      setError({
-        message: cause instanceof Error ? cause.message : "Could not suggest claims.",
-        details: cause instanceof ApiError ? cause.details : undefined,
-      });
+      setError(failureOf(cause, "Could not suggest claims."));
     } finally {
       setBusy(false);
     }
@@ -367,10 +360,7 @@ export default function CaptureInterview() {
           : await api.revisePill(reviseTarget.pill.id, payload);
       setCreated(result);
     } catch (cause) {
-      setError({
-        message: cause instanceof Error ? cause.message : "The capture failed.",
-        details: cause instanceof ApiError ? cause.details : undefined,
-      });
+      setError(failureOf(cause, "The capture failed."));
     } finally {
       setBusy(false);
     }

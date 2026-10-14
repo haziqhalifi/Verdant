@@ -1,0 +1,29 @@
+{
+  "name": "verdant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VERDANT — governed Intelligence Pill for building energy management",
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm --workspace backend run dev",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "build": "npm --workspace backend run build && npm --workspace frontend run build",
+    "test": "npm --workspace backend run test && npm --workspace frontend run test",
+    "typecheck": "npm --workspace backend run typecheck && npm --workspace frontend run typecheck",
+    "lint": "npm --workspace backend run lint && npm --workspace frontend run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "typescript": "^7.0.2"
+  }
+}

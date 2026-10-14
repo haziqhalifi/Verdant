@@ -14,12 +14,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRole } from "@/hooks/use-role";
-import { ApiError, api } from "@/lib/verdant-api";
-import { dateTimeOf, humanise } from "@/lib/utils";
+import { api } from "@/lib/verdant-api";
+import { dateTimeOf, failureOf, humanise } from "@/lib/utils";
+import type { Failure } from "@/lib/utils";
 import type { AuditLogEntry, AuditVerification } from "@/types/verdant";
 import { AUDIT_ACTIONS, AUDIT_ENTITY_TYPES } from "@/types/verdant";
-
-type Failure = { message: string; details?: Record<string, unknown> };
 
 const ACTION_OPTIONS = Object.values(AUDIT_ACTIONS);
 
@@ -64,10 +63,7 @@ export default function AuditLog() {
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
-          setError({
-            message: cause instanceof Error ? cause.message : "Could not load the audit log.",
-            details: cause instanceof ApiError ? cause.details : undefined,
-          });
+          setError(failureOf(cause, "Could not load the audit log."));
         }
       })
       .finally(() => {

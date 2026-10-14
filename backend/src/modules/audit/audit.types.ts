@@ -3,12 +3,28 @@
  *
  * The log is append-only and hash-chained: each entry commits to the previous entry's hash,
  * so any edit or deletion anywhere in the chain is detectable.
+ *
+ * Wire types (`AUDIT_ACTIONS`, `AuditAction`, `AUDIT_ENTITY_TYPES`, `AuditEntityType`,
+ * `AuditVerification`) are shared from `@verdant/shared`. The backend's `AuditLogEntry`
+ * extends `ChainEntry` (internal storage shape); the wire shape returned by the API includes
+ * `shortHash` / `shortPrevHash` via `presentAuditEntry`.
  */
 
 import type { Actor } from "@/modules/governance/actor";
 import type { Role } from "@/modules/governance/roles";
 import type { ChainEntry } from "@/shared/hash";
 
+export {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
+} from "@verdant/shared";
+export type { AuditAction, AuditEntityType, AuditVerification } from "@verdant/shared";
+
+/**
+ * Internal storage shape. Extends `ChainEntry` (which carries `seq`, `prevHash`, `hash`
+ * plus the hashed fields). The API returns the presented form with `shortHash` /
+ * `shortPrevHash` added — that wire shape matches the shared `AuditLogEntry`.
+ */
 export interface AuditLogEntry extends ChainEntry {
   id: string;
   actorId: string;
@@ -25,30 +41,3 @@ export interface AuditAppendInput {
   /** Defaults to the store clock. Supply explicitly in tests for a stable chain. */
   occurredAt?: string;
 }
-
-export interface AuditVerification {
-  valid: boolean;
-  entries: number;
-  brokenAtSeq: number | null;
-}
-
-/** The complete vocabulary of audited actions. Anything not listed here is a bug. */
-export const AUDIT_ACTIONS = {
-  CASE_CREATED: "case.created",
-  CASE_GATE_TRIGGERED: "case.gate_triggered",
-  CASE_CONTEXT_BLOCKED: "case.context_blocked",
-  CASE_PILL_SELECTED: "case.pill_selected",
-  CASE_CARD_ASSEMBLED: "case.card_assembled",
-  CASE_ACTION_ROUTED: "case.action_routed",
-  CASE_OUTCOME_RECORDED: "case.outcome_recorded",
-  PILL_CLAIMS_SUGGESTED: "pill.claims_suggested",
-  PILL_CAPTURED: "pill.captured",
-  PILL_REVISED: "pill.revised",
-  PILL_SUBMITTED: "pill.submitted",
-  PILL_APPROVED: "pill.approved",
-  PILL_REJECTED: "pill.rejected",
-  PILL_ROLLED_BACK: "pill.rolled_back",
-  SEED_RUN: "seed.run",
-} as const;
-
-export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

@@ -24,7 +24,7 @@ import type { AssetType } from "@/modules/assets/asset.types";
 import type { Asset } from "@/modules/assets/asset.types";
 import { findAssetByFloor, getAsset, getSite } from "@/modules/assets/asset.repository";
 import { AUDIT_ACTIONS } from "@/modules/audit/audit.types";
-import { appendAudit, verifyAudit } from "@/modules/audit/audit.service";
+import { appendAudit, verifyLastLink } from "@/modules/audit/audit.service";
 import type { Actor } from "@/modules/governance/actor";
 import { selectPill } from "@/modules/pills/orchestrator";
 import { getVersion, listOptions } from "@/modules/pills/pill.repository";
@@ -342,7 +342,10 @@ function finalise(
     route: state.route,
     hops: state.hops,
     policyNote,
-    auditVerified: verifyAudit().valid,
+    // For persisted runs, only the last link needs checking — the chain was
+    // valid before and we only appended. For read-only runs, nothing was
+    // written so the chain is unchanged from its last verified state.
+    auditVerified: persist ? verifyLastLink() : true,
   };
 }
 

@@ -24,11 +24,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRole } from "@/hooks/use-role";
-import { ApiError, api } from "@/lib/verdant-api";
-import { humanise, sgd } from "@/lib/utils";
+import { api } from "@/lib/verdant-api";
+import { failureOf, humanise, sgd } from "@/lib/utils";
+import type { Failure } from "@/lib/utils";
 import type { DecisionCard, PillDetail, PillSummary, Site } from "@/types/verdant";
-
-type Failure = { message: string; details?: Record<string, unknown> };
 
 const DEFAULT_SYMPTOM = "Evaluate cross-site transfer of the selected pill";
 
@@ -61,10 +60,7 @@ export default function TransferCheck() {
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
-          setError({
-            message: cause instanceof Error ? cause.message : "Could not load reference data.",
-            details: cause instanceof ApiError ? cause.details : undefined,
-          });
+          setError(failureOf(cause, "Could not load reference data."));
         }
       })
       .finally(() => {
@@ -90,10 +86,7 @@ export default function TransferCheck() {
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
-          setError({
-            message: cause instanceof Error ? cause.message : "Could not load the pill.",
-            details: cause instanceof ApiError ? cause.details : undefined,
-          });
+          setError(failureOf(cause, "Could not load the pill."));
         }
       });
 
@@ -122,10 +115,7 @@ export default function TransferCheck() {
       });
       setCard(result);
     } catch (cause) {
-      setError({
-        message: cause instanceof Error ? cause.message : "The transfer check failed.",
-        details: cause instanceof ApiError ? cause.details : undefined,
-      });
+      setError(failureOf(cause, "The transfer check failed."));
     } finally {
       setBusy(false);
     }
